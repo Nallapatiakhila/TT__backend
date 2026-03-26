@@ -7,6 +7,7 @@ import com.example.backend.service.OtpService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -99,5 +100,11 @@ public class AuthController {
     }
 
     return response;
-}
+    }
+
+    // GET ALL USERS
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
 }
