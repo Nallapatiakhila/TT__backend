@@ -20,13 +20,9 @@ public class GooglePlacesService {
 
         String url =
                 "https://maps.googleapis.com/maps/api/place/textsearch/json?query=tourist+places+in+"
-                        + city + "&key=" + apiKey;
+                        + URLEncoder.encode(city, StandardCharsets.UTF_8) + "&key=" + apiKey;
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public List<Map<String, Object>> getRestaurants(String city) {
@@ -35,11 +31,7 @@ public class GooglePlacesService {
                 "https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurants+in+"
                         + URLEncoder.encode(city, StandardCharsets.UTF_8) + "&key=" + apiKey;
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public List<Map<String, Object>> getRestaurantsNear(String location, String budget) {
@@ -55,11 +47,7 @@ public class GooglePlacesService {
                 "https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurants+near+" 
                         + URLEncoder.encode(location + priceQuery, StandardCharsets.UTF_8) + "&key=" + apiKey;
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public List<Map<String, Object>> getRestaurantsNearLocation(double lat, double lng, int radiusMeters, String budget) {
@@ -79,11 +67,7 @@ public class GooglePlacesService {
                         + "&type=restaurant"
                         + priceParams
                         + "&key=" + apiKey;
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public List<Map<String, Object>> getHotelsNearLocation(double lat, double lng, int radiusMeters) {
@@ -93,11 +77,7 @@ public class GooglePlacesService {
                         + "&radius=" + radiusMeters
                         + "&type=lodging"
                         + "&key=" + apiKey;
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public List<Map<String, Object>> getHotelsInDestination(String city) {
@@ -105,11 +85,7 @@ public class GooglePlacesService {
                 "https://maps.googleapis.com/maps/api/place/textsearch/json?query=hotels+in+" 
                         + URLEncoder.encode(city, StandardCharsets.UTF_8) + "&key=" + apiKey;
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        Map response = restTemplate.getForObject(url, Map.class);
-
-        return (List<Map<String, Object>>) response.get("results");
+        return executePlacesRequest(url);
     }
 
     public Map<String, Object> getPlaceLocation(String placeName) {
@@ -119,7 +95,12 @@ public class GooglePlacesService {
 
         RestTemplate restTemplate = new RestTemplate();
         Map response = restTemplate.getForObject(url, Map.class);
-        List<Map<String, Object>> results = (List<Map<String, Object>>) response.get("results");
+        
+        if (response != null && response.containsKey("status") && !"OK".equals(response.get("status")) && !"ZERO_RESULTS".equals(response.get("status"))) {
+            System.err.println("Google Places API Error: " + response.get("status") + " - " + response.get("error_message"));
+        }
+
+        List<Map<String, Object>> results = response != null ? (List<Map<String, Object>>) response.get("results") : null;
 
         if (results == null || results.isEmpty()) {
             return null;
@@ -163,6 +144,19 @@ public class GooglePlacesService {
             return null;
         }
         return "https://maps.googleapis.com/maps/api/place/photo?maxwidth="
-                + maxWidth + "&photoreference=" + photoReference + "&key=" + apiKey;
+                + maxWidth + "&photo_reference=" + photoReference + "&key=" + apiKey;
+    }
+
+    private List<Map<String, Object>> executePlacesRequest(String url) {
+        RestTemplate restTemplate = new RestTemplate();
+        Map response = restTemplate.getForObject(url, Map.class);
+        if (response != null) {
+            String status = (String) response.get("status");
+            if (!"OK".equals(status) && !"ZERO_RESULTS".equals(status)) {
+                System.err.println("Google Places API Error: " + status + " - " + response.get("error_message"));
+            }
+            return (List<Map<String, Object>>) response.get("results");
+        }
+        return null;
     }
 }

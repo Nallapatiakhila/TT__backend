@@ -16,6 +16,11 @@ public class TripService {
     private static final Map<String, List<Map<String, Object>>> restaurantsCache = new HashMap<>();
     private static final Map<String, List<Map<String, Object>>> hotelsCache = new HashMap<>();
 
+    // Fallback naming pools for unmatched days
+    private static final List<String> fallbackPlaceTypes = List.of("Beach", "Park", "Fort", "Garden", "Temple", "Museum", "Waterfall", "Market", "Lake", "Hill Station", "Historic Site", "Viewpoint");
+    private static final List<String> fallbackRestaurantTypes = List.of("Cafe", "Diner", "Bistro", "Seafood", "BBQ", "Veg Restaurant", "Street Food", "Family Restaurant", "Fine Dining", "Food Court");
+    private static final List<String> fallbackHotelTypes = List.of("Inn", "Resort", "Suite", "Lodge", "Boutique", "Guest House", "Executive Hotel", "Luxury Hotel", "Budget Hotel", "Homestay");
+
     public TripService(GooglePlacesService googlePlacesService) {
         this.googlePlacesService = googlePlacesService;
     }
@@ -76,23 +81,78 @@ public class TripService {
             }
 
             // Some sample place and restaurant options for popular destinations
-            Map<String, List<String>> placeNames = Map.of(
-                    "goa", List.of("Baga Beach", "Fort Aguada", "Anjuna Market", "Old Goa Basilica", "Calangute Beach"),
-                    "kerala", List.of("Munnar Tea Gardens", "Alleppey Backwaters", "Kovalam Beach", "Thekkady Wildlife Sanctuary", "Fort Kochi"),
-                    "manali", List.of("Rohtang Pass", "Hidimba Devi Temple", "Solang Valley", "Mall Road", "Vashisht Hot Springs"),
-                    "ooty", List.of("Ooty Lake", "Doddabetta Peak", "Botanical Gardens", "Rose Garden", "Nilgiri Mountain Railway"),
-                    "coorg", List.of("Abbey Falls", "Raja's Seat", "Dubare Elephant Camp", "Talakaveri", "Nisargadhama"),
-                    "hyderabad", List.of("Charminar", "Golconda Fort", "Hussain Sagar", "Ramoji Film City", "Birla Mandir")
-            );
+            Map<String, List<String>> placeNames = new HashMap<>();
+            placeNames.put("goa", List.of("Baga Beach", "Fort Aguada", "Anjuna Market", "Old Goa Basilica", "Calangute Beach"));
+            placeNames.put("kerala", List.of("Munnar Tea Gardens", "Alleppey Backwaters", "Kovalam Beach", "Thekkady Wildlife Sanctuary", "Fort Kochi"));
+            placeNames.put("manali", List.of("Rohtang Pass", "Hidimba Devi Temple", "Solang Valley", "Mall Road", "Vashisht Hot Springs"));
+            placeNames.put("ooty", List.of("Ooty Lake", "Doddabetta Peak", "Botanical Gardens", "Rose Garden", "Nilgiri Mountain Railway"));
+            placeNames.put("coorg", List.of("Abbey Falls", "Raja's Seat", "Dubare Elephant Camp", "Talakaveri", "Nisargadhama"));
+            placeNames.put("hyderabad", List.of("Charminar", "Golconda Fort", "Hussain Sagar", "Ramoji Film City", "Birla Mandir"));
+            placeNames.put("telangana", List.of("Charminar", "Warangal Fort", "Ramoji Film City", "Chowmahalla Palace", "Kuntala Waterfall"));
+            placeNames.put("andhra pradesh", List.of("Tirumala Temple", "Borra Caves", "Araku Valley", "Rishikonda Beach", "Undavalli Caves"));
+            placeNames.put("maharashtra", List.of("Gateway of India", "Ajanta Caves", "Ellora Caves", "Elephanta Caves", "Marine Drive"));
+            placeNames.put("mumbai", List.of("Gateway of India", "Marine Drive", "Juhu Beach", "Siddhivinayak Temple", "Colaba Causeway"));
+            placeNames.put("delhi", List.of("India Gate", "Red Fort", "Qutub Minar", "Humayun's Tomb", "Lotus Temple"));
+            placeNames.put("rajasthan", List.of("Amber Fort", "City Palace", "Hawa Mahal", "Jaisalmer Fort", "Mehrangarh Fort"));
+            placeNames.put("jaipur", List.of("Amber Fort", "City Palace", "Hawa Mahal", "Jantar Mantar", "Albert Hall Museum"));
+            placeNames.put("karnataka", List.of("Mysore Palace", "Hampi", "Coorg", "Lalbagh Botanical Garden", "Jog Falls"));
+            placeNames.put("bangalore", List.of("Lalbagh Botanical Garden", "Cubbon Park", "Bangalore Palace", "Vidhana Soudha", "Nandi Hills"));
+            placeNames.put("tamil nadu", List.of("Meenakshi Temple", "Marina Beach", "Brihadeeswara Temple", "Ooty", "Kanyakumari"));
+            placeNames.put("chennai", List.of("Marina Beach", "Kapaleeshwarar Temple", "Santhome Cathedral", "Fort St. George", "Elliot's Beach"));
+            placeNames.put("gujarat", List.of("Statue of Unity", "Gir National Park", "Rann of Kutch", "Somnath Temple", "Sabarmati Ashram"));
+            placeNames.put("ahmedabad", List.of("Sabarmati Ashram", "Kankaria Lake", "Adalaj Stepwell", "Akshardham Temple", "Jama Masjid"));
+            placeNames.put("west bengal", List.of("Victoria Memorial", "Howrah Bridge", "Darjeeling", "Sundarbans", "Dakshineswar Kali Temple"));
+            placeNames.put("kolkata", List.of("Victoria Memorial", "Howrah Bridge", "Dakshineswar Kali Temple", "Indian Museum", "Eden Gardens"));
+            placeNames.put("uttar pradesh", List.of("Taj Mahal", "Varanasi Ghats", "Agra Fort", "Fatehpur Sikri", "Bara Imambara"));
+            placeNames.put("uttarakhand", List.of("Valley of Flowers", "Nainital Lake", "Kedarnath Temple", "Rishikesh", "Mussoorie"));
+            placeNames.put("punjab", List.of("Golden Temple", "Jallianwala Bagh", "Wagah Border", "Sheesh Mahal", "Virasat-e-Khalsa"));
+            placeNames.put("haryana", List.of("Sultanpur National Park", "Brahma Sarovar", "Pinjore Gardens", "Kingdom of Dreams", "Surajkund"));
+            placeNames.put("bihar", List.of("Mahabodhi Temple", "Nalanda University", "Golghar", "Vishnupad Temple", "Vikramshila"));
+            placeNames.put("madhya pradesh", List.of("Khajuraho Temples", "Gwalior Fort", "Bhimbetka Caves", "Sanchi Stupa", "Kanha National Park"));
+            placeNames.put("odisha", List.of("Jagannath Temple", "Konark Sun Temple", "Chilika Lake", "Lingaraja Temple", "Udayagiri Caves"));
+            placeNames.put("jammu and kashmir", List.of("Dal Lake", "Gulmarg", "Pahalgam", "Shankaracharya Temple", "Sonamarg"));
+            placeNames.put("assam", List.of("Kaziranga National Park", "Kamakhya Temple", "Majuli Island", "Umananda Island", "Manas National Park"));
+            placeNames.put("sikkim", List.of("Nathu La Pass", "Tsomgo Lake", "Rumtek Monastery", "Pelling", "Yumthang Valley"));
+            placeNames.put("himachal pradesh", List.of("Shimla", "Rohtang Pass", "Spiti Valley", "Dharamshala", "Dalhousie"));
+            placeNames.put("kerala", List.of("Munnar Tea Gardens", "Alleppey Backwaters", "Kovalam Beach", "Thekkady Wildlife", "Fort Kochi"));
+            placeNames.put("chhattisgarh", List.of("Chitrakote Falls", "Tirathgarh Falls", "Kanger Valley", "Bastar Palace", "Danteshwari Temple"));
+            placeNames.put("jharkhand", List.of("Dassam Falls", "Hundru Falls", "Betla National Park", "Jagannath Temple Ranchi", "Baidyanath Jyotirlinga"));
 
-            Map<String, List<String>> restaurantNames = Map.of(
-                    "goa", List.of("Fisherman's Wharf", "Thalassa", "Gunpowder", "Bomra's", "Vinayak Family Restaurant"),
-                    "kerala", List.of("Kashi Art Cafe", "Thaff", "Dhe Puttu", "Kuttanad Seafood Restaurant", "Fort House Restaurant"),
-                    "manali", List.of("Johnson's Cafe", "The Lazy Dog", "Cafe 1947", "Il Forno", "Tibetan Kitchen"),
-                    "ooty", List.of("1847", "Shinkows", "Hyderabad Biryani House", "Sri Krishna Inn", "Hotel Lakeview"),
-                    "coorg", List.of("Coorg Cuisine", "Raintree", "The Falls", "Madikeri Club", "Barrista"),
-                    "hyderabad", List.of("Paradise Biryani", "Chutney's", "Ohri's", "Bawarchi", "Sahib Sindh Sultan")
-            );
+            Map<String, List<String>> restaurantNames = new HashMap<>();
+            restaurantNames.put("goa", List.of("Fisherman's Wharf", "Thalassa", "Gunpowder", "Bomra's", "Vinayak Family Restaurant"));
+            restaurantNames.put("kerala", List.of("Kashi Art Cafe", "Thaff", "Dhe Puttu", "Kuttanad Seafood", "Fort House Restaurant"));
+            restaurantNames.put("manali", List.of("Johnson's Cafe", "The Lazy Dog", "Cafe 1947", "Il Forno", "Tibetan Kitchen"));
+            restaurantNames.put("ooty", List.of("1847", "Shinkows", "Hyderabad Biryani House", "Sri Krishna Inn", "Hotel Lakeview"));
+            restaurantNames.put("coorg", List.of("Coorg Cuisine", "Raintree", "The Falls", "Madikeri Club", "Barrista"));
+            restaurantNames.put("hyderabad", List.of("Paradise Biryani", "Chutney's", "Ohri's", "Bawarchi", "Sahib Sindh Sultan"));
+            restaurantNames.put("telangana", List.of("Paradise Biryani", "Chutney's", "Ohri's", "Bawarchi", "Karachi Bakery"));
+            restaurantNames.put("andhra pradesh", List.of("Sea Inn", "The Eatery", "Dolphin Restaurant", "Gismat", "Zeeshan"));
+            restaurantNames.put("maharashtra", List.of("Britannia & Co", "Leopold Cafe", "Trishna", "Bademiya", "Gajalee"));
+            restaurantNames.put("mumbai", List.of("Britannia & Co", "Leopold Cafe", "Trishna", "Bademiya", "Gajalee"));
+            restaurantNames.put("delhi", List.of("Karim's", "Bukhara", "Indian Accent", "Paranthe Wali Gali", "Saravana Bhavan"));
+            restaurantNames.put("rajasthan", List.of("Chokhi Dhani", "1135 AD", "Suvarna Mahal", "LMB", "Spice Court"));
+            restaurantNames.put("jaipur", List.of("Chokhi Dhani", "1135 AD", "Suvarna Mahal", "Lajawab", "Spice Court"));
+            restaurantNames.put("karnataka", List.of("Vidyarthi Bhavan", "MTR", "Karavalli", "Truffles", "Toit"));
+            restaurantNames.put("bangalore", List.of("Vidyarthi Bhavan", "MTR", "Karavalli", "Truffles", "Toit"));
+            restaurantNames.put("tamil nadu", List.of("Murugan Idli Shop", "Amma Chettinad", "Saravana Bhavan", "Annalakshmi", "Dindigul Thalappakatti"));
+            restaurantNames.put("chennai", List.of("Murugan Idli", "Amma Chettinad", "Saravana Bhavan", "Annalakshmi", "Dindigul Thalappakatti"));
+            restaurantNames.put("gujarat", List.of("Agashiye", "Swati Snacks", "Gopi Dining Hall", "Gordhan Thal", "Vishalla"));
+            restaurantNames.put("ahmedabad", List.of("Agashiye", "Swati Snacks", "Gopi Dining Hall", "Gordhan Thal", "Vishalla"));
+            restaurantNames.put("west bengal", List.of("Peter Cat", "Arsalan", "Oh! Calcutta", "Mocambo", "Flurys"));
+            restaurantNames.put("kolkata", List.of("Peter Cat", "Arsalan", "Oh! Calcutta", "Mocambo", "Flurys"));
+            restaurantNames.put("uttar pradesh", List.of("Pinch of Spice", "Tunday Kababi", "Dastarkhwan", "Dasaprakash", "Bati Chokha"));
+            restaurantNames.put("uttarakhand", List.of("Kalsang", "Chotiwala", "Little Llama Cafe", "Machan", "Sakley's"));
+            restaurantNames.put("punjab", List.of("Kesar Da Dhaba", "Bharawan Da Dhaba", "Brother's Dhaba", "Pal Dhaba", "Makhan Fish"));
+            restaurantNames.put("haryana", List.of("Gulshan Dhaba", "Amrik Sukhdev", "Garam Dharam", "Pehlwan Dhaba", "Haveli"));
+            restaurantNames.put("bihar", List.of("Pind Balluchi", "Bansi Vihar", "Kapil Dev's Elevens", "Ghar Aangan", "Mainland China"));
+            restaurantNames.put("madhya pradesh", List.of("Bapu Ki Kutia", "Ranjit's Lakeview", "Peshawri", "Za-aiqa", "Manohar Dairy"));
+            restaurantNames.put("odisha", List.of("Dalma", "Bichitrananda", "Chung Wah", "Mayfair", "The Zaika"));
+            restaurantNames.put("jammu and kashmir", List.of("Ahdoos", "Mughal Darbar", "Stream", "Nedou's", "Nathu's Sweets"));
+            restaurantNames.put("assam", List.of("Paradise", "Khorikaa", "Maihang", "Piping Hot", "Delicacy"));
+            restaurantNames.put("sikkim", List.of("Taste of Tibet", "Roll House", "Thakali", "Nimtho", "The Square"));
+            restaurantNames.put("himachal pradesh", List.of("Johnson's Cafe", "Renaissance", "Cafe 1947", "Himachali Rasoi", "Chopsticks"));
+            restaurantNames.put("chhattisgarh", List.of("Madhulika", "Girnar Restro", "Mocha", "Sankalp", "Barbeque Nation"));
+            restaurantNames.put("jharkhand", List.of("Kaveri", "Yellow Sapphire", "Seventh Heaven", "The Great Kabab Factory", "Prana Lounge"));
 
             String destKey = destination.trim().toLowerCase();
 
@@ -129,18 +189,29 @@ public class TripService {
             } catch (Exception ignored) {
             }
 
-            // If the destination isn't in our predefined map, create a predictable list of places/restaurants
-            if (!placeNames.containsKey(destKey)) {
-                placeNames = new HashMap<>(placeNames);
+            // Always prefer live Google Places results where available, with fallback to presets and deterministic names.
+            placeNames = new HashMap<>(placeNames);
+            restaurantNames = new HashMap<>(restaurantNames);
+
+            List<String> placesFromGoogle = getGoogleTouristPlaceNames(destination, days);
+            if (!placesFromGoogle.isEmpty()) {
+                placeNames.put(destKey, placesFromGoogle);
+            } else if (!placeNames.containsKey(destKey)) {
                 placeNames.put(destKey, generateFallbackNames(destination, "Place", days));
             }
-            if (!restaurantNames.containsKey(destKey)) {
-                restaurantNames = new HashMap<>(restaurantNames);
+
+            List<String> restaurantsFromGoogle = getGoogleRestaurantNames(destination, days);
+            if (!restaurantsFromGoogle.isEmpty()) {
+                restaurantNames.put(destKey, restaurantsFromGoogle);
+            } else if (!restaurantNames.containsKey(destKey)) {
                 restaurantNames.put(destKey, generateFallbackNames(destination, "Restaurant", days));
             }
 
-            List<String> destPlaces = placeNames.getOrDefault(destKey, Collections.emptyList());
-            List<String> destRests = restaurantNames.getOrDefault(destKey, Collections.emptyList());
+            List<String> destPlaces = new ArrayList<>(placeNames.getOrDefault(destKey, Collections.emptyList()));
+            List<String> googlePlaceNames = !placesFromGoogle.isEmpty() ? new ArrayList<>(placesFromGoogle) : Collections.emptyList();
+
+            List<String> destRests = new ArrayList<>(restaurantNames.getOrDefault(destKey, Collections.emptyList()));
+            List<String> googleRestNames = !restaurantsFromGoogle.isEmpty() ? new ArrayList<>(restaurantsFromGoogle) : Collections.emptyList();
 
             // Flight estimate (one-way + return) based on budget and distance (deterministic)
             int flightCost = calculateFlightCost(fromLocation, destination, budget, seed);
@@ -155,21 +226,33 @@ public class TripService {
                 int foodCost = foodBase + Math.abs(Objects.hash(seed, i, "food") % 150);
                 int hotelCost = hotelBase + Math.abs(Objects.hash(seed, i, "hotel") % 2000);
 
-                String placeName = destPlaces.isEmpty()
-                        ? destinationLabel + " Tourist Place " + (i + 1)
-                        : destPlaces.get(i % destPlaces.size());
+                String placeName;
+                if (i < googlePlaceNames.size()) {
+                    placeName = googlePlaceNames.get(i);
+                } else if (i < destPlaces.size()) {
+                    placeName = destPlaces.get(i);
+                } else {
+                    // Provide a non-numeric, descriptive fallback place name
+                    String type = fallbackPlaceTypes.get(i % fallbackPlaceTypes.size());
+                    placeName = destinationLabel + " " + type + " " + (i + 1);
+                }
 
                 // Ensure place name reflects the destination label as well
                 placeName = ensureDestinationInName(placeName, destinationLabel);
 
-                String restaurantName = destRests.isEmpty()
-                        ? destinationLabel + " Restaurant " + (i + 1)
-                        : destRests.get(i % destRests.size());
+                String restaurantName;
+                if (i < destRests.size()) {
+                    restaurantName = destRests.get(i);
+                } else {
+                    String type = fallbackRestaurantTypes.get(i % fallbackRestaurantTypes.size());
+                    restaurantName = destinationLabel + " " + type;
+                }
 
                 // Ensure restaurant name reflects the destination label as well
                 restaurantName = ensureDestinationInName(restaurantName, destinationLabel);
 
-                String hotelName = destinationLabel + " Hotel " + (i + 1);
+                String hotelType = fallbackHotelTypes.get(i % fallbackHotelTypes.size());
+                String hotelName = destinationLabel + " " + hotelType;
 
                 // Ensure hotel name reflects the destination label as well
                 hotelName = ensureDestinationInName(hotelName, destinationLabel);
@@ -178,9 +261,15 @@ public class TripService {
                 Map<String, Object> selectedGooglePlace = null;
                 String photoUrl = null;
                 if (!googlePlaces.isEmpty()) {
-                    selectedGooglePlace = googlePlaces.get(Math.floorMod(seed + i, googlePlaces.size()));
-                    placeName = (String) selectedGooglePlace.getOrDefault("name", placeName);
-                    photoUrl = extractPhotoUrl(selectedGooglePlace);
+                    if (i < googlePlaces.size()) {
+                        selectedGooglePlace = googlePlaces.get(i);
+                    } else {
+                        selectedGooglePlace = googlePlaces.get(i % googlePlaces.size());
+                    }
+                    if (selectedGooglePlace != null) {
+                        placeName = (String) selectedGooglePlace.getOrDefault("name", placeName);
+                        photoUrl = extractPhotoUrl(selectedGooglePlace);
+                    }
                 }
 
                 // Try to find restaurants near the selected place (more realistic pairing)
@@ -278,10 +367,21 @@ public class TripService {
                     hotelName = ensureDestinationInName(hotelName, destination);
                 }
 
-                // Fallback to Unsplash if no Google photo is available
+                // Try a new place-specific Google Places backup if no photo yet
                 if (photoUrl == null) {
-                    String query = (destination + " " + placeName).replaceAll("\\s+", "+");
-                    photoUrl = "https://source.unsplash.com/400x250/?" + query + "&sig=" + (seed + i);
+                    photoUrl = getGooglePhotoForPlace(placeName);
+                }
+
+                // Fetch a free image from Wikipedia API as a fallback
+                if (photoUrl == null) {
+                    photoUrl = getWikipediaPhotoForPlace(placeName);
+                }
+
+                // Final fallback to deterministic Picsum image per place/day
+                if (photoUrl == null) {
+                    String seedTerm = (placeName != null && !placeName.isBlank() ? placeName : destination) + " " + i;
+                    String encodedSeed = java.net.URLEncoder.encode(seedTerm, java.nio.charset.StandardCharsets.UTF_8);
+                    photoUrl = "https://picsum.photos/seed/" + encodedSeed + "/400/250";
                 }
 
                 day.put("day","Day "+(i+1));
@@ -333,6 +433,44 @@ public class TripService {
             result.add(base + " " + suffix + " " + i);
         }
         return result;
+    }
+
+    private List<String> getGoogleTouristPlaceNames(String destination, int maxResults) {
+        try {
+            List<Map<String, Object>> results = googlePlacesService.getTouristPlaces(destination);
+            if (results == null || results.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<String> names = new ArrayList<>();
+            for (Map<String, Object> place : results) {
+                if (place.get("name") instanceof String) {
+                    names.add((String) place.get("name"));
+                }
+                if (names.size() >= maxResults) break;
+            }
+            return names;
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<String> getGoogleRestaurantNames(String destination, int maxResults) {
+        try {
+            List<Map<String, Object>> results = googlePlacesService.getRestaurants(destination);
+            if (results == null || results.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<String> names = new ArrayList<>();
+            for (Map<String, Object> place : results) {
+                if (place.get("name") instanceof String) {
+                    names.add((String) place.get("name"));
+                }
+                if (names.size() >= maxResults) break;
+            }
+            return names;
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
     }
 
     private String extractPhotoUrl(Map<String, Object> placeData) {
@@ -418,5 +556,106 @@ public class TripService {
             return name;
         }
         return dest + " " + name;
+    }
+
+    private String getGooglePhotoForPlace(String placeName) {
+        if (placeName == null || placeName.isBlank()) {
+            return null;
+        }
+
+        // 1) Try primary search by exact place name through Google Places API.
+        try {
+            List<Map<String, Object>> places = googlePlacesService.getTouristPlaces(placeName);
+            if (places != null && !places.isEmpty()) {
+                for (Map<String, Object> p : places) {
+                    String url = extractPhotoUrl(p);
+                    if (url != null && !url.isBlank()) {
+                        return url;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 2) If no photo obtained, try to resolve actual coordinates and fetch nearby place photo.
+        try {
+            Map<String, Object> geo = googlePlacesService.getPlaceLocation(placeName);
+            if (geo != null && geo.get("lat") instanceof Number && geo.get("lng") instanceof Number) {
+                double lat = ((Number) geo.get("lat")).doubleValue();
+                double lng = ((Number) geo.get("lng")).doubleValue();
+
+                List<Map<String, Object>> nearbyPlaces = googlePlacesService.getTouristPlaces(placeName + " travel");
+                if (nearbyPlaces != null && !nearbyPlaces.isEmpty()) {
+                    for (Map<String, Object> p : nearbyPlaces) {
+                        String url = extractPhotoUrl(p);
+                        if (url != null && !url.isBlank()) {
+                            return url;
+                        }
+                    }
+                }
+
+                List<Map<String, Object>> restaurants = googlePlacesService.getRestaurantsNearLocation(lat, lng, 1500, "Low Budget");
+                if (restaurants != null && !restaurants.isEmpty()) {
+                    for (Map<String, Object> r : restaurants) {
+                        String url = extractPhotoUrl(r);
+                        if (url != null && !url.isBlank()) {
+                            return url;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    private String getWikipediaPhotoForPlace(String placeName) {
+        if (placeName == null || placeName.isBlank()) {
+            return null;
+        }
+        try {
+            // Improve search matching by removing the destination name if it's prepended
+            String searchName = placeName;
+            if (searchName.toLowerCase().contains("hyderabad")) {
+                searchName = searchName.replaceAll("(?i)hyderabad", "").trim();
+            }
+            if (searchName.isEmpty()) searchName = placeName;
+
+            String encoded = java.net.URLEncoder.encode(searchName, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+            String urlStr = "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=" 
+                         + encoded + "&gsrlimit=1&prop=pageimages&format=json&pithumbsize=400";
+            java.net.URI uri = new java.net.URI(urlStr);
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("User-Agent", "SmartPlanApp/1.0");
+            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>("", headers); // Empty string instead of "parameters"
+            
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            org.springframework.http.ResponseEntity<java.util.Map> response = 
+                restTemplate.exchange(uri, org.springframework.http.HttpMethod.GET, entity, java.util.Map.class);
+            
+            java.util.Map body = response.getBody();
+            System.out.println("Wiki API response for " + searchName + " -> " + body);
+            if (body != null && body.containsKey("query")) {
+                java.util.Map query = (java.util.Map) body.get("query");
+                if (query.containsKey("pages")) {
+                    java.util.Map pages = (java.util.Map) query.get("pages");
+                    if (!pages.isEmpty()) {
+                        Object firstKey = pages.keySet().iterator().next();
+                        java.util.Map page = (java.util.Map) pages.get(firstKey);
+                        if (page.containsKey("thumbnail")) {
+                            java.util.Map thumbnail = (java.util.Map) page.get("thumbnail");
+                            System.out.println("Found wiki photo: " + thumbnail.get("source"));
+                            return (String) thumbnail.get("source");
+                        }
+                    }
+                }
+            }
+            System.out.println("Wiki API did not contain thumbnail for " + placeName);
+        } catch (Exception ignored) {
+            System.err.println("Wikipedia Image API Error for " + placeName + ": " + ignored.getMessage());
+        }
+        return null;
     }
 }
