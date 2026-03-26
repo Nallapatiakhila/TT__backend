@@ -19,7 +19,7 @@ public class OtpService {
     // store OTP temporarily
     private Map<String, String> otpStorage = new HashMap<>();
 
-    @Value("${spring.mail.from:akhilanallapati3@gmail.com}")
+    @Value("${spring.mail.from:23eg107e39@anurag.edu.in}")
     private String fromEmail;
 
     public void sendOtp(String email) {
